@@ -1,0 +1,25 @@
+{
+  "name": "expiration-tweet-bot",
+  "version": "0.0.1",
+  "description": "Tweets any expired, released, and no premium domains",
+  "main": "dist/index.js",
+  "source": "src/index.ts",
+  "scripts": {
+    "build": "microbundle",
+    "exec": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "makoto",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^4.17.9",
+    "cross-fetch": "^3.0.6",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "graphql": "^15.4.0",
+    "graphql-request": "^3.3.0",
+    "microbundle": "^0.12.4",
+    "moment": "^2.29.1",
+    "twitter": "^1.7.1"
+  }
+}
