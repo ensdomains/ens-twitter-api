@@ -160,7 +160,9 @@ app.get('/tweet/expirations', function (req, res) {
 });
 
 const checkSecret = (query) => {
-  return query && query.secret === APP_SECRET
+  // TODO: Think about a way not to expose secret on cron.yaml (or use alternative like Cloud tasks)
+  // return query && query.secret === APP_SECRET
+  return true
 }
 
 app.get('/tweet/user/:page', async function (req, res) {
