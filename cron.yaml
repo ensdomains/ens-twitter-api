@@ -1,0 +1,4 @@
+cron:
+- description: "daily stat"
+  url: /tweet/daily
+  schedule: every 24 hours
