@@ -18,7 +18,8 @@ const {
   TWITTER_CONSUMER_SECRET,
   TWITTER_ACCESS_TOKEN_KEY,
   TWITTER_ACCESS_TOKEN_SECRET,
-  APP_SECRET
+  APP_SECRET,
+  CONFIG_TEST
 } = process.env
 const TWITTER_CLIENT = new twitter({
   consumer_key: TWITTER_CONSUMER_KEY,
@@ -102,6 +103,10 @@ const registrations = async () => {
 // const app: express.Application = express();
 const app = express();
 app.get('/', function (req, res) {
+  res.send('Hello World!');
+});
+
+app.get('/hello', function (req, res) {
   res.send('Hello World!');
 });
 
@@ -205,6 +210,9 @@ app.get('/daily', function (req, res) {
   })
 });
 
-app.listen(3000, function () {
-  console.log('App is listening on port 3000!');
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`App listening on port ${PORT}`);
+  console.log(`CONFIG_TEST: ${CONFIG_TEST}`)
+  console.log('Press Ctrl+C to quit.');
 });
