@@ -17,15 +17,20 @@ const {
   TWITTER_CONSUMER_KEY,
   TWITTER_CONSUMER_SECRET,
   TWITTER_ACCESS_TOKEN_KEY,
-  TWITTER_ACCESS_TOKEN_SECRET
+  TWITTER_ACCESS_TOKEN_SECRET,
+  APP_SECRET
 } = process.env
-
 const TWITTER_CLIENT = new twitter({
   consumer_key: TWITTER_CONSUMER_KEY,
   consumer_secret: TWITTER_CONSUMER_SECRET,
   access_token_key: TWITTER_ACCESS_TOKEN_KEY,
   access_token_secret: TWITTER_ACCESS_TOKEN_SECRET
 });
+let SCREEN_NAME
+TWITTER_CLIENT.get('/account/verify_credentials',  function(error, tweet, response) {
+  console.log(tweet.screen_name)
+  SCREEN_NAME = tweet.screen_name
+})
 
 function formatDate(date){
     return date.utc().format('MMMM Do YYYY, h:mm:ss a (UTC)')
@@ -122,7 +127,6 @@ app.get('/tweet/registrations', function (req, res) {
   })
 });
 
-
 // Twitter rate limit is 900 per every 15 min
 // The max expiration per hour would be 277 on 06/01/21 05:00
 // hence it should work without any pagination
@@ -151,7 +155,7 @@ app.get('/tweet/expirations', function (req, res) {
 });
 
 const checkSecret = (query) => {
-  return query && query.secret === process.env.APP_SECRET
+  return query && query.secret === APP_SECRET
 }
 
 app.get('/tweet/user/:page', async function (req, res) {
@@ -168,15 +172,31 @@ app.get('/tweet/user/:page', async function (req, res) {
 });
 
 app.get('/tweet/daily', function (req, res) {
-  if(!checkSecret(req.query)) res.status(401).send('Not allowed')
-  daily().then(m =>{
-    const total = m.totalEthRegistered - m.totalEthReleased
-    const text = `Today (${ formatShortDate(m.startDate) }) ${total} @ensdomains .eth names were created (${ m.totalEthRegistered} registered - ${m.totalEthReleased} released ) and ${ m.totalEthRenewed} domains were  renewed.`
-    TWITTER_CLIENT.post('statuses/update', {status: text},  function(error, tweet, response) {
-      if(error) throw error;
-      res.json(response)
-    });    
-  })
+  if(checkSecret(req.query)){
+    daily().then(m =>{
+      const total = m.totalEthRegistered - m.totalEthReleased
+      const search = `from:@${SCREEN_NAME} #ensdaily`
+      const text = `#ensdaily (${ formatShortDate(m.startDate) }) ${total} @ensdomains .eth names were created (${ m.totalEthRegistered} registered - ${m.totalEthReleased} released ) and ${ m.totalEthRenewed} domains were  renewed.`
+      TWITTER_CLIENT.get('search/tweets', {q:search}, function(error, tweets, response){
+        if(error) (res.json([]))
+        let option, action
+        if(tweets && tweets.statuses && tweets.statuses.length > 0){
+          const status = tweets.statuses[0]
+          action = 'Retweet'
+          option = {status: text, attachment_url:`https://twitter.com/${SCREEN_NAME}/status/${status.id_str}`}
+        }else{
+          option = {status: text}
+          action = 'Tweet'
+        }
+        console.log({action, option})
+        TWITTER_CLIENT.post('statuses/update', option,  function(error, tweet, response) {
+          res.json(`${action} ${text}` + JSON.stringify(error || response))
+        })
+      })
+    })
+  }else{
+    res.status(401).send('Not allowed')
+  }
 });
 
 app.get('/daily', function (req, res) {
