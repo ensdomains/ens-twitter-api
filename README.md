@@ -18,9 +18,9 @@ Example message
 
 Returns twitter user search results
 
-### WIP
-
 ### /tweet/registered
+
+Tweets when ad domain is registered (summary + individual name in the thread)
 
 Example message
 
@@ -29,7 +29,7 @@ Example message
 
 ### /tweet/expired
 
-Tweets when a domain is expired
+Tweets when a domain is expired (summary + individual name in the thread)
 
 Example message
 
@@ -38,7 +38,7 @@ Example message
 
 ### /tweet/released
 
-Tweets when a domain is released
+Tweets when a domain is released (summary + individual name in the thread)
 
 Example message
 
@@ -47,7 +47,7 @@ Example message
 
 ### /tweet/nopremium
 
-Tweets when a domain is available with no premium
+Tweets when a domain is available with no premium (summary + individual name in the thread)
 
 Example message
 
