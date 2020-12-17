@@ -9,6 +9,8 @@ import {
   GET_RENEWED,
   GET_REGISTERED
 } from './subgraph'
+import { Status as Tweet, User } from 'twitter-d';
+
 require('dotenv').config()
 
 const ENSURL = 'https://api.thegraph.com/subgraphs/name/ensdomains/ens'
@@ -74,9 +76,9 @@ const daily = async () => {
   })
 }
 
-const expirations = async () => {
+const expirations = async (hour = 1) => {
     let skip = 0
-    const expiryDateGt = moment().subtract(1, 'hour')
+    const expiryDateGt = moment().subtract(hour, 'hour')
     const expiryDateLt = moment()
     const releaseDateGt = expiryDateGt.clone().subtract(90, 'days')
     const releaseDateLt = expiryDateLt.clone().subtract(90, 'days')
@@ -92,12 +94,33 @@ const expirations = async () => {
     }
 }
 
-const registrations = async () => {
+const registrations = async (hour = 1) => {
   let skip = 0
-  const startDate = moment().subtract(1, 'hour')
+  const startDate = moment().subtract(hour, 'hour')
   const endDate = moment()
   const { registrations:nameRegistered } = await request(ENSURL, GET_REGISTERED, { registrationDateGt:startDate.unix(), registrationDateLt:endDate.unix() })
   return nameRegistered
+}
+
+const pluralize = (num) => {
+  return (num && num > 1 ? 's' : '')
+}
+
+// const whatever2 = async (): Promise<number> => {
+//   return new Promise<number>((resolve) => {
+//       resolve(4);
+//   });
+// };
+
+const promisifyTweet = async (action, endpoint, params): Promise<Tweet> => {
+  return new Promise<Tweet> ((resolve, reject) => {
+    TWITTER_CLIENT[action](endpoint, params, function (err, data, response) {
+      if (err) {
+        reject(err);
+      }
+      resolve(data);
+    })
+  })
 }
 
 // const app: express.Application = express();
@@ -122,14 +145,23 @@ app.get('/registrations', function (req, res) {
   })
 });
 
-app.get('/tweet/registrations', function (req, res) {
-  registrations().then(messages =>{
-    messages.map(m => {
+app.get('/tweet/registrations', async function (req, res) {
+  const tweets = []
+  const hour = 1
+  const messages = await registrations(hour)
+    const summary = `#ensregistrations ${messages.length} .eth names were registered in the last ${hour} hour${ pluralize(hour) }`
+    let tweet: Tweet = await promisifyTweet('post', 'statuses/update', {status: summary})
+    tweets.push(summary)
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
       const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(moment())).as('year'))
       const name = m.domain.name
-      res.json(`${name} was just registered for ${duration} year(s) https://app.ens.domains/name/${name}`);
-    })
-  })
+      let text = `${name} was just registered for ${duration} year${ pluralize(duration) } https://app.ens.domains/name/${name}`
+      tweets.push(text)
+      console.log({text})
+      tweet = await promisifyTweet('post', 'statuses/update', {status: text, in_reply_to_status_id: tweet.id_str })
+    }
+    res.send(tweets.join('\n'));
 });
 
 // Twitter rate limit is 900 per every 15 min
