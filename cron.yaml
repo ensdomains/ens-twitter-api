@@ -2,11 +2,11 @@ cron:
 - description: "daily stat"
   url: /tweet/daily
   schedule: every 24 hours 00:00
-- description: "registrations"
-  url: /tweet/registrations
+- description: "registered"
+  url: /tweet/registered
   schedule: every 1 hour from 00:10 to 23:10
-- description: "expirations"
-  url: /tweet/expirations
+- description: "expired"
+  url: /tweet/expired
   schedule: every 1 hour from 00:25 to 23:25
 - description: "released"
   url: /tweet/released

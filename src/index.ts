@@ -9,7 +9,7 @@ import {
   GET_RENEWED,
   GET_REGISTERED
 } from './subgraph'
-import { Status as Tweet, User } from 'twitter-d';
+import { Status as Tweet } from 'twitter-d';
 
 require('dotenv').config()
 
@@ -29,18 +29,27 @@ const TWITTER_CLIENT = new twitter({
   access_token_key: TWITTER_ACCESS_TOKEN_KEY,
   access_token_secret: TWITTER_ACCESS_TOKEN_SECRET
 });
+import {
+  HOUR, GRACE_PERIOD, DECAY_PERIOD,
+  formatDate, formatShortDate, pluralize
+
+} from './util'
 let SCREEN_NAME
+
 TWITTER_CLIENT.get('/account/verify_credentials',  function(error, tweet, response) {
   console.log(tweet.screen_name)
   SCREEN_NAME = tweet.screen_name
 })
 
-function formatDate(date){
-    return date.utc().format('MMMM Do YYYY, h:mm:ss a (UTC)')
-}
-
-function formatShortDate(data){
-  return data.utc().format('MMMM Do YYYY')
+const promisifyTweet = async (action, endpoint, params): Promise<Tweet> => {
+  return new Promise<Tweet> ((resolve, reject) => {
+    TWITTER_CLIENT[action](endpoint, params, function (err, data, response) {
+      if (err) {
+        reject(err);
+      }
+      resolve(data);
+    })
+  })
 }
 
 const daily = async () => {
@@ -76,54 +85,38 @@ const daily = async () => {
   })
 }
 
-const expirations = async (hour = 1) => {
-    let skip = 0
-    const expiryDateGt = moment().subtract(hour, 'hour')
-    const expiryDateLt = moment()
-    const releaseDateGt = expiryDateGt.clone().subtract(90, 'days')
-    const releaseDateLt = expiryDateLt.clone().subtract(90, 'days')
-    const noPremiumDateGt = releaseDateGt.clone().subtract(28, 'days')
-    const noPremiumDateLt = releaseDateLt.clone().subtract(28, 'days')
-    let { registrations: expiredRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { skip, expiryDateGt:expiryDateGt.unix(), expiryDateLt:expiryDateLt.unix() })
-    let { registrations: releasedRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { skip, expiryDateGt:releaseDateGt.unix(), expiryDateLt:releaseDateLt.unix() })
-    let { registrations: noPremiumRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { skip, expiryDateGt:noPremiumDateGt.unix(), expiryDateLt:noPremiumDateLt.unix() })
-    return {
-        expiredRegistrations,
-        releasedRegistrations,
-        noPremiumRegistrations
-    }
-}
-
-const registrations = async (hour = 1) => {
-  let skip = 0
+const registered = async (hour = 1) => {
   const startDate = moment().subtract(hour, 'hour')
   const endDate = moment()
   const { registrations:nameRegistered } = await request(ENSURL, GET_REGISTERED, { registrationDateGt:startDate.unix(), registrationDateLt:endDate.unix() })
   return nameRegistered
 }
 
-const pluralize = (num) => {
-  return (num && num > 1 ? 's' : '')
+const expired = async (hour = 1) => {
+    const expiryDateGt = moment().subtract(hour, 'hour')
+    const expiryDateLt = moment()
+    let { registrations: expiredRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:expiryDateGt.unix(), expiryDateLt:expiryDateLt.unix() })
+    return expiredRegistrations
 }
 
-// const whatever2 = async (): Promise<number> => {
-//   return new Promise<number>((resolve) => {
-//       resolve(4);
-//   });
-// };
-
-const promisifyTweet = async (action, endpoint, params): Promise<Tweet> => {
-  return new Promise<Tweet> ((resolve, reject) => {
-    TWITTER_CLIENT[action](endpoint, params, function (err, data, response) {
-      if (err) {
-        reject(err);
-      }
-      resolve(data);
-    })
-  })
+const released = async (hour = 1) => {
+  const expiryDateGt = moment().subtract(hour, 'hour')
+  const expiryDateLt = moment()
+  const releaseDateGt = expiryDateGt.clone().subtract(GRACE_PERIOD, 'days')
+  const releaseDateLt = expiryDateLt.clone().subtract(GRACE_PERIOD, 'days')
+  let { registrations: releasedRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:releaseDateGt.unix(), expiryDateLt:releaseDateLt.unix() })
+  return releasedRegistrations
 }
 
-// const app: express.Application = express();
+const nopremium = async (hour = 1) => {
+  const expiryDateGt = moment().subtract(hour, 'hour')
+  const expiryDateLt = moment()
+  const noPremiumDateGt = expiryDateGt.clone().subtract(GRACE_PERIOD + DECAY_PERIOD, 'days')
+  const noPremiumDateLt = expiryDateLt.clone().subtract(GRACE_PERIOD + DECAY_PERIOD, 'days')
+  let { registrations: noPremiumRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:noPremiumDateGt.unix(), expiryDateLt:noPremiumDateLt.unix() })
+  return noPremiumRegistrations
+}
+
 const app = express();
 app.get('/', function (req, res) {
   res.send('Hello World!');
@@ -133,62 +126,81 @@ app.get('/hello', function (req, res) {
   res.send('Hello World!');
 });
 
-app.get('/expirations', function (req, res) {
-  expirations().then(messages =>{
+app.get('/registered', function (req, res) {
+  registered().then(messages =>{
     res.json(messages);
   })
 });
 
-app.get('/registrations', function (req, res) {
-  registrations().then(messages =>{
+app.get('/expired', function (req, res) {
+  expired().then(messages =>{
     res.json(messages);
   })
 });
 
-app.get('/tweet/registrations', async function (req, res) {
+app.get('/released', function (req, res) {
+  released().then(messages =>{
+    res.json(messages);
+  })
+});
+
+app.get('/nopremium', function (req, res) {
+  nopremium().then(messages =>{
+    res.json(messages);
+  })
+});
+
+async function threadTweet(summary, messages, textHandler) {
   const tweets = []
-  const hour = 1
-  const messages = await registrations(hour)
-    const summary = `#ensregistrations ${messages.length} .eth names were registered in the last ${hour} hour${ pluralize(hour) }`
+  if(messages.length > 0){
     let tweet: Tweet = await promisifyTweet('post', 'statuses/update', {status: summary})
     tweets.push(summary)
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
-      const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(moment())).as('year'))
-      const name = m.domain.name
-      let text = `${name} was just registered for ${duration} year${ pluralize(duration) } https://app.ens.domains/name/${name}`
+      let text = textHandler(m)
       tweets.push(text)
-      console.log({text})
       tweet = await promisifyTweet('post', 'statuses/update', {status: text, in_reply_to_status_id: tweet.id_str })
     }
-    res.send(tweets.join('\n'));
+  }
+  return tweets
+}
+
+app.get('/tweet/registered', async function (_, res) {
+  const messages = await registered(HOUR)
+  const summary = `#ensregistered ${messages.length} .eth name${ pluralize(messages.length) } has been registered in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const tweets = await threadTweet(summary, messages, (m) => {
+    const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(moment())).as('year'))
+    const name = m.domain.name
+    return `${name} was just registered for ${duration} year${ pluralize(duration) } https://app.ens.domains/name/${name}`
+  })
+  res.send(tweets.join('\n'));
 });
 
-// Twitter rate limit is 900 per every 15 min
-// The max expiration per hour would be 277 on 06/01/21 05:00
-// hence it should work without any pagination
-app.get('/tweet/expirations', function (req, res) {
-  // TODO: Make each thread as comment
-  expirations().then( data => {
-    const {expiredRegistrations, releasedRegistrations, noPremiumRegistrations} = data
-    let messages = []
-    expiredRegistrations.map(e => {
-        const message = `${e.domain.name} was just expired and will be relased in 90 days`
-        messages.push(message)
-        console.log(message)
-    })
-    releasedRegistrations.map(e => {
-        const message = `${e.domain.name} was just released and available for registration with premium at https://app.ens.domains/name/${e.domain.name}`
-        messages.push(message)
-        console.log(message)
-    })
-    noPremiumRegistrations.map(e => {
-        const message = `${e.domain.name} is now available for registration with no premium at https://app.ens.domains/name/${e.domain.name}`
-        messages.push(message)
-        console.log(message)
-    })
-    res.send(messages);
+app.get('/tweet/expired', async function (_, res) {
+  const messages = await expired(HOUR)
+  const summary = `#ensrexpired ${messages.length} .eth name${ pluralize(messages.length) } got expired in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const tweets = await threadTweet(summary, messages, (m) => {
+    return `${m.domain.name} was just expired and will be relased in 90 days`
   })
+  res.send(tweets.join('\n'));
+});
+
+app.get('/tweet/released', async function (_, res) {
+  const messages = await released(HOUR)
+  const summary = `#ensreleased ${messages.length} .eth name${ pluralize(messages.length) } got released in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const tweets = await threadTweet(summary, messages, (m) => {
+    return `${m.domain.name} was just released and available for registration with premium at https://app.ens.domains/name/${m.domain.name}`
+  })
+  res.send(tweets.join('\n'));
+});
+
+app.get('/tweet/nopremium', async function (_, res) {
+  const messages = await nopremium(HOUR)
+  const summary = `#ensnopremium ${messages.length} .eth name${ pluralize(messages.length) } became available for registration with no premium in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const tweets = await threadTweet(summary, messages, (m) => {
+    return `${m.domain.name} is now available for registration with no premium at https://app.ens.domains/name/${m.domain.name}`
+  })
+  res.send(tweets.join('\n'));
 });
 
 const checkSecret = (query) => {

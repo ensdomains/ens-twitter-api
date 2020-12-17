@@ -20,22 +20,39 @@ Returns twitter user search results
 
 ### WIP
 
-### /tweet/registrations
+### /tweet/registered
 
 Example message
 
+- `#ensregistrations 1 .eth name has been registered in the last 1 hour
 - vitalik.eth was just registered for 1 year(s) https://app.ens.domains/name/vitalik.eth`
 
-### /tweet/expirations
+### /tweet/expired
 
-Tweets when a user is expired, released, and available with no premium
+Tweets when a domain is expired
 
 Example message
 
+- #ensrexpirations 1 .eth name got expired in the last 1 hour
 - vitalik.eth was just expired and will be relased in 90 days
-- vitalik.eth was just released and available for registration with premium at https://app.ens.domains/name/vitalik.eth
-- vitalik.eth is now available for registration with no premium at https://app.ens.domains/name/vitalik.eth
 
+### /tweet/released
+
+Tweets when a domain is released
+
+Example message
+
+- #ensrexpirations 1 .eth name got released in the last 1 hour
+- vitalik.eth was just released and available for registration with premium at https://app.ens.domains/name/vitalik.eth
+
+### /tweet/nopremium
+
+Tweets when a domain is available with no premium
+
+Example message
+
+- #ensnopremium 1 .eth name became avaialble for registration with no premium in the last 1 hour
+- vitalik.eth is now available for registration with no premium at https://app.ens.domains/name/vitalik.eth
 
 ## Setup
 
