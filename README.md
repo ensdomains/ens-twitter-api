@@ -4,7 +4,7 @@ Generic endpoints for twitter related bots and api
 
 ## API
 
-### Available
+## Public
 
 ### /tweet/daily
 
@@ -14,9 +14,11 @@ Example message
 
 - #ensdaily (December 6th 2020, 12:00:00 am (UTC)) 726 @ensdomains .eth names were created (1000 registered - 274 released ) and 588 domains were  renewed.`
 
-### /tweet/user/:page
+### /user/:page
 
 Returns twitter user search results
+
+## Cron only
 
 ### /tweet/registered
 
@@ -24,7 +26,7 @@ Tweets when ad domain is registered (summary + individual name in the thread)
 
 Example message
 
-- `#ensregistrations 1 .eth name has been registered in the last 1 hour
+- `#ensregistrations 1 .eth name has been registered in the last hour
 - vitalik.eth was just registered for 1 year(s) https://app.ens.domains/name/vitalik.eth`
 
 ### /tweet/expired
@@ -33,7 +35,7 @@ Tweets when a domain is expired (summary + individual name in the thread)
 
 Example message
 
-- #ensrexpirations 1 .eth name got expired in the last 1 hour
+- #ensrexpirations 1 .eth name has been expired in the last hour
 - vitalik.eth was just expired and will be relased in 90 days
 
 ### /tweet/released
@@ -42,7 +44,7 @@ Tweets when a domain is released (summary + individual name in the thread)
 
 Example message
 
-- #ensrexpirations 1 .eth name got released in the last 1 hour
+- #ensrexpirations 1 .eth name has been released in the last hour
 - vitalik.eth was just released and available for registration with premium at https://app.ens.domains/name/vitalik.eth
 
 ### /tweet/nopremium
@@ -51,7 +53,7 @@ Tweets when a domain is available with no premium (summary + individual name in 
 
 Example message
 
-- #ensnopremium 1 .eth name became avaialble for registration with no premium in the last 1 hour
+- #ensnopremium 1 .eth name became avaialble for registration with no premium in the last hour
 - vitalik.eth is now available for registration with no premium at https://app.ens.domains/name/vitalik.eth
 
 ## Setup
@@ -69,7 +71,6 @@ TWITTER_CONSUMER_KEY=
 TWITTER_CONSUMER_SECRET=
 TWITTER_ACCESS_TOKEN_KEY=
 TWITTER_ACCESS_TOKEN_SECRET=
-APP_SECRET=
 ```
 
 ```

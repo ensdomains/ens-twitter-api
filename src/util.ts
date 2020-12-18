@@ -12,3 +12,7 @@ export function formatShortDate(data){
 export const pluralize = (num) => {
   return (num && num > 1 ? 's' : '')
 }
+
+export function generateSummary(verb, length) {
+  return `${length} .eth name${ pluralize(length) } ${ length === 1 ? 'has' : 'have' } been ${verb} in the last hour #ens${verb}`
+}

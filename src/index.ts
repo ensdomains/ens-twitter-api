@@ -18,7 +18,6 @@ const {
   TWITTER_CONSUMER_SECRET,
   TWITTER_ACCESS_TOKEN_KEY,
   TWITTER_ACCESS_TOKEN_SECRET,
-  APP_SECRET,
   CONFIG_TEST
 } = process.env
 const TWITTER_CLIENT = new twitter({
@@ -28,7 +27,7 @@ const TWITTER_CLIENT = new twitter({
   access_token_secret: TWITTER_ACCESS_TOKEN_SECRET
 });
 import {
-  HOUR, formatShortDate, pluralize
+  HOUR, formatShortDate, pluralize, generateSummary
 } from './util'
 let SCREEN_NAME
 
@@ -52,38 +51,40 @@ const promisifyTweet = async (action, endpoint, params): Promise<Tweet> => {
   })
 }
 const app = express();
+
+const onlyCron = (req, res, next) => {
+  if (req.get('X-Appengine-Cron') !== 'true') {
+    return res.status(401).send('Not allowed').end()
+  }else{
+    next()
+  }
+}
+
+app.all('/tweet/*', onlyCron);
+
 app.get('/', function (req, res) {
   res.send('Hello World!');
 });
 
 app.get('/daily', function (req, res) {
-  daily().then(messages =>{
-    res.json(messages);
-  })
+  console.log('***daily')
+  daily().then(messages => res.json(messages))
 });
 
 app.get('/registered', function (req, res) {
-  registered().then(messages =>{
-    res.json(messages);
-  })
+  registered().then(messages => res.json(messages))
 });
 
 app.get('/expired', function (req, res) {
-  expired().then(messages =>{
-    res.json(messages);
-  })
+  expired().then(messages => res.json(messages))
 });
 
 app.get('/released', function (req, res) {
-  released().then(messages =>{
-    res.json(messages);
-  })
+  released().then(messages => res.json(messages))
 });
 
 app.get('/nopremium', function (req, res) {
-  nopremium().then(messages =>{
-    res.json(messages);
-  })
+  nopremium().then(messages => res.json(messages))
 });
 
 async function threadTweet(summary, messages, textHandler) {
@@ -101,10 +102,6 @@ async function threadTweet(summary, messages, textHandler) {
     }
   }
   return tweets
-}
-
-function generateSummary(verb, length) {
-  return `${length} .eth name${ pluralize(length) } ${ length === 1 ? 'has' : 'have' } been ${verb} in the last hour #ens${verb}`
 }
 
 app.get('/tweet/registered', async function (_, res) {
@@ -145,13 +142,7 @@ app.get('/tweet/nopremium', async function (_, res) {
   res.send(tweets.join('\n'));
 });
 
-const checkSecret = (query) => {
-  // TODO: Think about a way not to expose secret on cron.yaml (or use alternative like Cloud tasks)
-  // return query && query.secret === APP_SECRET
-  return true
-}
-
-app.get('/tweet/user/:page', async function (req, res) {
+app.get('/user/:page', async function (req, res) {
   try{
     TWITTER_CLIENT.get('/users/search', {q:'\.eth', count:20, page:req.params.page},  function(error, tweets, response){
       if(error) (res.json([]))
@@ -165,31 +156,27 @@ app.get('/tweet/user/:page', async function (req, res) {
 });
 
 app.get('/tweet/daily', function (req, res) {
-  if(checkSecret(req.query)){
-    daily().then(m =>{
-      const total = m.totalEthRegistered - m.totalEthReleased
-      const search = `from:@${SCREEN_NAME} #ensdaily`
-      const text = `#ensdaily (${ formatShortDate(m.startDate) }) ${total} @ensdomains .eth names were created (${ m.totalEthRegistered} registered - ${m.totalEthReleased} released ) and ${ m.totalEthRenewed} domains were  renewed.`
-      TWITTER_CLIENT.get('search/tweets', {q:search}, function(error, tweets, response){
-        if(error) (res.json([]))
-        let option, action
-        if(tweets && tweets.statuses && tweets.statuses.length > 0){
-          const status = tweets.statuses[0]
-          action = 'Retweet'
-          option = {status: text, attachment_url:`https://twitter.com/${SCREEN_NAME}/status/${status.id_str}`}
-        }else{
-          option = {status: text}
-          action = 'Tweet'
-        }
-        console.log({action, option})
-        TWITTER_CLIENT.post('statuses/update', option,  function(error, tweet, response) {
-          res.json(`${action} ${text}` + JSON.stringify(error || response))
-        })
+  daily().then(m =>{
+    const total = m.totalEthRegistered - m.totalEthReleased
+    const search = `from:@${SCREEN_NAME} #ensdaily`
+    const text = `#ensdaily (${ formatShortDate(m.startDate) }) ${total} @ensdomains .eth names were created (${ m.totalEthRegistered} registered - ${m.totalEthReleased} released ) and ${ m.totalEthRenewed} domains were  renewed.`
+    TWITTER_CLIENT.get('search/tweets', {q:search}, function(error, tweets, response){
+      if(error) (res.json([]))
+      let option, action
+      if(tweets && tweets.statuses && tweets.statuses.length > 0){
+        const status = tweets.statuses[0]
+        action = 'Retweet'
+        option = {status: text, attachment_url:`https://twitter.com/${SCREEN_NAME}/status/${status.id_str}`}
+      }else{
+        option = {status: text}
+        action = 'Tweet'
+      }
+      console.log({action, option})
+      TWITTER_CLIENT.post('statuses/update', option,  function(error, tweet, response) {
+        res.json(`${action} ${text}` + JSON.stringify(error || response))
       })
     })
-  }else{
-    res.status(401).send('Not allowed')
-  }
+  })
 });
 
 const PORT = process.env.PORT || 8080;
