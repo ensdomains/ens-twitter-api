@@ -32,6 +32,7 @@ import {
 let SCREEN_NAME
 
 TWITTER_CLIENT.get('/account/verify_credentials',  function(error, tweet, response) {
+  if(error) console.log(`APP_LOG:TWITTER_CONNECTION:ERROR:`, JSON.stringify(error))
   console.log(`APP_LOG:Connected as ${tweet.screen_name}`)
   SCREEN_NAME = tweet.screen_name
 })
