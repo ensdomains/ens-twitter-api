@@ -32,7 +32,7 @@ import {
 let SCREEN_NAME
 
 TWITTER_CLIENT.get('/account/verify_credentials',  function(error, tweet, response) {
-  console.log(tweet.screen_name)
+  console.log(`APP_LOG:Connected as ${tweet.screen_name}`)
   SCREEN_NAME = tweet.screen_name
 })
 
@@ -46,7 +46,7 @@ const promisifyTweet = async (action, endpoint, params): Promise<Tweet> => {
         resolve(data);
       })
     }catch(e){
-      console.log('PROMISE_ERROR', e)
+      console.log('APP_LOG:PROMISE_ERROR', e)
     }
   })
 }
@@ -67,7 +67,6 @@ app.get('/', function (req, res) {
 });
 
 app.get('/daily', function (req, res) {
-  console.log('***daily')
   daily().then(messages => res.json(messages))
 });
 
@@ -91,14 +90,14 @@ async function threadTweet(summary, messages, textHandler) {
   const tweets = []
   if(messages.length > 0){
     let tweet: Tweet = await promisifyTweet('post', 'statuses/update', {status: summary})
-    console.log(`TWEET: ${summary}`)
+    console.log(`APP_LOG:TWEET: ${summary}`)
     tweets.push(summary)
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
       let text = textHandler(m)
       tweets.push(text)
       tweet = await promisifyTweet('post', 'statuses/update', {status: text, in_reply_to_status_id: tweet.id_str })
-      console.log(`COMMENT (${i}/ ${messages.length}): ${text}`)
+      console.log(`APP_LOG:COMMENT (${i}/ ${messages.length}): ${text}`)
     }
   }
   return tweets
@@ -181,7 +180,6 @@ app.get('/tweet/daily', function (req, res) {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`App listening on port ${PORT}`);
-  console.log(`CONFIG_TEST: ${CONFIG_TEST}`)
-  console.log('Press Ctrl+C to quit.');
+  console.log(`APP_LOG::App listening on port ${PORT}`);
+  console.log(`APP_LOG:CONFIG_TEST: ${CONFIG_TEST}`)
 });
