@@ -6,8 +6,8 @@
   "source": "src/index.ts",
   "scripts": {
     "build": "microbundle",
-    "deploy": "yarn build && gcloud app deploy app.yaml",
-    "deploy:cron": "gcloud app deploy cron.yaml",
+    "deploy": "yarn build && gcloud app deploy app.yaml --quiet",
+    "deploy:cron": "gcloud app deploy cron.yaml --quiet",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

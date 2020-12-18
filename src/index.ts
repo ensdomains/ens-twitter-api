@@ -1,20 +1,18 @@
-import { request } from 'graphql-request'
 const express = require('express')
 const moment = require('moment')
 const twitter = require('twitter');
 
-import {
-  GET_REGISTRATIONS,
-  GET_BLOCK,
-  GET_RENEWED,
-  GET_REGISTERED
-} from './subgraph'
 import { Status as Tweet } from 'twitter-d';
+import {
+  daily,
+  registered,
+  expired,
+  released,
+  nopremium
+} from './queries'
 
 require('dotenv').config()
 
-const ENSURL = 'https://api.thegraph.com/subgraphs/name/ensdomains/ens'
-const BLOCKSURL = 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks'
 const {
   TWITTER_CONSUMER_KEY,
   TWITTER_CONSUMER_SECRET,
@@ -30,9 +28,7 @@ const TWITTER_CLIENT = new twitter({
   access_token_secret: TWITTER_ACCESS_TOKEN_SECRET
 });
 import {
-  HOUR, GRACE_PERIOD, DECAY_PERIOD,
-  formatDate, formatShortDate, pluralize
-
+  HOUR, formatShortDate, pluralize
 } from './util'
 let SCREEN_NAME
 
@@ -43,87 +39,27 @@ TWITTER_CLIENT.get('/account/verify_credentials',  function(error, tweet, respon
 
 const promisifyTweet = async (action, endpoint, params): Promise<Tweet> => {
   return new Promise<Tweet> ((resolve, reject) => {
-    TWITTER_CLIENT[action](endpoint, params, function (err, data, response) {
-      if (err) {
-        reject(err);
-      }
-      resolve(data);
-    })
+    try{
+      TWITTER_CLIENT[action](endpoint, params, function (err, data, response) {
+        if (err) {
+          reject(err);
+        }
+        resolve(data);
+      })
+    }catch(e){
+      console.log('PROMISE_ERROR', e)
+    }
   })
 }
-
-const daily = async () => {
-  const startTime = moment().unix()
-  const startDate = moment().subtract(1, 'day').startOf('day')
-  const endDate = moment().subtract(1, 'day').endOf('day')
-  const releasedDateGt = startDate.clone().subtract(90, 'day')
-  const releasedDateLt = endDate.clone().subtract(90, 'day')
-  const { blocks:startBlock } = await request(BLOCKSURL, GET_BLOCK, { timestamp:startDate.unix() })
-  const { blocks:endBlock } = await request(BLOCKSURL, GET_BLOCK, { timestamp:endDate.unix() })
-  console.log({
-    startDate,
-    endDate,
-    startBlock,
-    endBlock
-  })
-  const { nameReneweds } = await request(ENSURL, GET_RENEWED, {
-    blockNumberGt:parseInt(startBlock[0].number),
-    blockNumberLt:parseInt(endBlock[0].number)
-  })
-  const { registrations:nameRegistered } = await request(ENSURL, GET_REGISTERED, { registrationDateGt:startDate.unix(), registrationDateLt:endDate.unix() })
-  const { registrations: releasedRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:releasedDateGt.unix(), expiryDateLt:releasedDateLt.unix() })
-  const endTime = moment().unix()
-  return({
-    runningTime: (endTime - startTime),
-    startDate,
-    endDate,
-    startBlock,
-    endBlock,
-    totalEthRenewed: nameReneweds.length,
-    totalEthRegistered:nameRegistered.length,
-    totalEthReleased: releasedRegistrations.length
-  })
-}
-
-const registered = async (hour = 1) => {
-  const startDate = moment().subtract(hour, 'hour')
-  const endDate = moment()
-  const { registrations:nameRegistered } = await request(ENSURL, GET_REGISTERED, { registrationDateGt:startDate.unix(), registrationDateLt:endDate.unix() })
-  return nameRegistered
-}
-
-const expired = async (hour = 1) => {
-    const expiryDateGt = moment().subtract(hour, 'hour')
-    const expiryDateLt = moment()
-    let { registrations: expiredRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:expiryDateGt.unix(), expiryDateLt:expiryDateLt.unix() })
-    return expiredRegistrations
-}
-
-const released = async (hour = 1) => {
-  const expiryDateGt = moment().subtract(hour, 'hour')
-  const expiryDateLt = moment()
-  const releaseDateGt = expiryDateGt.clone().subtract(GRACE_PERIOD, 'days')
-  const releaseDateLt = expiryDateLt.clone().subtract(GRACE_PERIOD, 'days')
-  let { registrations: releasedRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:releaseDateGt.unix(), expiryDateLt:releaseDateLt.unix() })
-  return releasedRegistrations
-}
-
-const nopremium = async (hour = 1) => {
-  const expiryDateGt = moment().subtract(hour, 'hour')
-  const expiryDateLt = moment()
-  const noPremiumDateGt = expiryDateGt.clone().subtract(GRACE_PERIOD + DECAY_PERIOD, 'days')
-  const noPremiumDateLt = expiryDateLt.clone().subtract(GRACE_PERIOD + DECAY_PERIOD, 'days')
-  let { registrations: noPremiumRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:noPremiumDateGt.unix(), expiryDateLt:noPremiumDateLt.unix() })
-  return noPremiumRegistrations
-}
-
 const app = express();
 app.get('/', function (req, res) {
   res.send('Hello World!');
 });
 
-app.get('/hello', function (req, res) {
-  res.send('Hello World!');
+app.get('/daily', function (req, res) {
+  daily().then(messages =>{
+    res.json(messages);
+  })
 });
 
 app.get('/registered', function (req, res) {
@@ -154,12 +90,14 @@ async function threadTweet(summary, messages, textHandler) {
   const tweets = []
   if(messages.length > 0){
     let tweet: Tweet = await promisifyTweet('post', 'statuses/update', {status: summary})
+    console.log(`TWEET: ${summary}`)
     tweets.push(summary)
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
       let text = textHandler(m)
       tweets.push(text)
       tweet = await promisifyTweet('post', 'statuses/update', {status: text, in_reply_to_status_id: tweet.id_str })
+      console.log(`COMMENT (${i}/ ${messages.length}): ${text}`)
     }
   }
   return tweets
@@ -252,12 +190,6 @@ app.get('/tweet/daily', function (req, res) {
   }else{
     res.status(401).send('Not allowed')
   }
-});
-
-app.get('/daily', function (req, res) {
-  daily().then(messages =>{
-    res.json(messages);
-  })
 });
 
 const PORT = process.env.PORT || 8080;
