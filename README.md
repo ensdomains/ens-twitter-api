@@ -6,6 +6,12 @@ Generic endpoints for twitter related bots and api
 
 ## Public
 
+### /user/:page
+
+Returns twitter user search results
+
+## Cron only
+
 ### /tweet/daily
 
 Tweets daily ENS stats. If there are tweets with #ensdaily in the previous tweets, it will quote tweets.
@@ -13,12 +19,6 @@ Tweets daily ENS stats. If there are tweets with #ensdaily in the previous tweet
 Example message
 
 - #ensdaily (December 6th 2020, 12:00:00 am (UTC)) 726 @ensdomains .eth names were created (1000 registered - 274 released ) and 588 domains were  renewed.`
-
-### /user/:page
-
-Returns twitter user search results
-
-## Cron only
 
 ### /tweet/registered
 
