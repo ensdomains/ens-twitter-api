@@ -165,9 +165,13 @@ async function threadTweet(summary, messages, textHandler) {
   return tweets
 }
 
+function generateSummary(verb, length) {
+  return `${length} .eth name${ pluralize(length) } ${ length === 1 ? 'has' : 'have' } been ${verb} in the last hour #ens${verb}`
+}
+
 app.get('/tweet/registered', async function (_, res) {
   const messages = await registered(HOUR)
-  const summary = `#ensregistered ${messages.length} .eth name${ pluralize(messages.length) } has been registered in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const summary = generateSummary('registered', messages.length)
   const tweets = await threadTweet(summary, messages, (m) => {
     const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(moment())).as('year'))
     const name = m.domain.name
@@ -178,7 +182,7 @@ app.get('/tweet/registered', async function (_, res) {
 
 app.get('/tweet/expired', async function (_, res) {
   const messages = await expired(HOUR)
-  const summary = `#ensrexpired ${messages.length} .eth name${ pluralize(messages.length) } got expired in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const summary = generateSummary('expired', messages.length)
   const tweets = await threadTweet(summary, messages, (m) => {
     return `${m.domain.name} was just expired and will be relased in 90 days`
   })
@@ -187,7 +191,7 @@ app.get('/tweet/expired', async function (_, res) {
 
 app.get('/tweet/released', async function (_, res) {
   const messages = await released(HOUR)
-  const summary = `#ensreleased ${messages.length} .eth name${ pluralize(messages.length) } got released in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const summary = generateSummary('released', messages.length)
   const tweets = await threadTweet(summary, messages, (m) => {
     return `${m.domain.name} was just released and available for registration with premium at https://app.ens.domains/name/${m.domain.name}`
   })
@@ -196,7 +200,7 @@ app.get('/tweet/released', async function (_, res) {
 
 app.get('/tweet/nopremium', async function (_, res) {
   const messages = await nopremium(HOUR)
-  const summary = `#ensnopremium ${messages.length} .eth name${ pluralize(messages.length) } became available for registration with no premium in the last ${HOUR} hour${ pluralize(HOUR) }`
+  const summary = `${messages.length} .eth name${ pluralize(messages.length) } became available for registration with no premium in the last hour #ensnopremium`
   const tweets = await threadTweet(summary, messages, (m) => {
     return `${m.domain.name} is now available for registration with no premium at https://app.ens.domains/name/${m.domain.name}`
   })
