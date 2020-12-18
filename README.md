@@ -71,17 +71,19 @@ TWITTER_CONSUMER_KEY=
 TWITTER_CONSUMER_SECRET=
 TWITTER_ACCESS_TOKEN_KEY=
 TWITTER_ACCESS_TOKEN_SECRET=
+CONFIG_TEST=
 ```
 
 ```
 yarn
-yarn build && yarn run exec
+yarn build && yarn start
 ```
 
 ## Deploy (to GAE)
 
 ```
 yarn deploy
+yarn deploy:cron
 ```
 
 ## TODO
