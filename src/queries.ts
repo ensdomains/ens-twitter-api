@@ -1,6 +1,7 @@
 import { request } from 'graphql-request'
 import {
   GET_REGISTRATIONS,
+  GET_REGISTRATIONS_WITH_LABEL,
   GET_BLOCK,
   GET_RENEWED,
   GET_REGISTERED,
@@ -49,6 +50,22 @@ export const daily = async () => {
     totalEthReleased: releasedRegistrations.length,
     totalReverseSet:nameChangeds.length
   })
+}
+
+export const expiredWithLabel = async(day = 7, labels) =>{
+  // const startDate = moment().subtract(day, 'day').startOf('day')
+  // const endDate = moment().subtract(day, 'day').endOf('day')
+  // const startDate = moment().subtract(GRACE_PERIOD - day, 'days').startOf('day')
+  // const endDate = moment().subtract(GRACE_PERIOD - day, 'days').endOf('day')
+  const startDate = moment().subtract(GRACE_PERIOD, 'days').endOf('day')
+  const endDate = moment().endOf('day')
+  console.log({
+    startDate, endDate, labels
+  })
+  const { registrations } = await request(ENSURL, GET_REGISTRATIONS_WITH_LABEL, {
+    expiryDateGt:startDate.unix(), expiryDateLt:endDate.unix(), labels
+  })
+  return registrations
 }
 
 export const registered = async (hour = 1) => {

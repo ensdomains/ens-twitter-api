@@ -8,7 +8,8 @@ import {
   registered,
   expired,
   released,
-  nopremium
+  nopremium,
+  expiredWithLabel
 } from './queries'
 
 require('dotenv').config()
@@ -27,7 +28,7 @@ const TWITTER_CLIENT = new twitter({
   access_token_secret: TWITTER_ACCESS_TOKEN_SECRET
 });
 import {
-  HOUR, formatShortDate, pluralize, generateSummary
+  HOUR, formatShortDate, pluralize, generateSummary, parser, GRACE_PERIOD
 } from './util'
 let SCREEN_NAME
 
@@ -168,17 +169,53 @@ app.get('/tweet/nopremium', async function (_, res) {
   })
 });
 
-app.get('/user/:page', async function (req, res) {
-  try{
-    TWITTER_CLIENT.get('/users/search', {q:'\.eth', count:20, page:req.params.page},  function(error, tweets, response){
-      if(error) (res.json([]))
-      console.log(tweets);  // The favorites.
-      res.json(tweets)
-    })  
-  }catch(e){
-    console.log({e})
-    res.json([])
+async function search(){
+  let perpage = 20
+  let page = 1
+  let maxpage = 50
+  let tweetcount = 20
+  let parsed = []
+  let tweets
+  while (tweetcount === perpage && page < maxpage) {
+    try{
+      tweets = await TWITTER_CLIENT.get('/users/search', {q:'\.eth', count:perpage, page})
+      tweetcount = tweets.length
+      let filtered = tweets.map(t => {
+        let a = {domain:parser(t.name)}
+        return {...t, ...a}
+      }).filter(f => !!f.domain)
+      parsed = [...parsed, ...filtered]
+      console.log({page, tweetcount, perpage, continue:(page < maxpage), filtered:filtered.length, parsed:parsed.length})
+      page+=1
+    }catch(e){
+      console.log({e})
+    }
   }
+  return parsed
+}
+
+app.get('/search', async function (req, res) {
+  let tweets = await search()
+  let labels = tweets.filter(t => t.domain.split('.').length === 2).map(t => t.domain.split('.')[0])
+  
+  let expired = await expiredWithLabel(7, labels)
+  console.log(`Checking expiratin for ${labels.length} names, found ${expired.length} names to be released soon`)
+  expired = expired.map(e => {
+    let domain = `${e.labelName}.eth`
+    let twitter = tweets.filter(t => t.domain === domain)[0]
+    let expiryDate = moment(e.expiryDate * 1000)
+    let releaseDate = moment(e.expiryDate * 1000).add(GRACE_PERIOD, 'days')
+    let duration = parseInt(moment.duration(releaseDate.diff(moment())).as('days'))
+    return({
+      name:e.labelName,
+      twitter:twitter.screen_name,
+      expiryDate,
+      releaseDate,
+      duration,
+      text:`Hi @${twitter.screen_name} . ${domain} will be released in ${duration} days. Make sure to renew at https://app.ens.domains/name/${domain} if you still wish to keep the name.`
+    })
+  })
+  res.json(expired.map(e => e.text))
 });
 
 app.get('/tweet/daily', function (req, res) {

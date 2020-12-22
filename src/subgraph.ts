@@ -13,6 +13,20 @@ export const GET_REGISTRATIONS = gql`
   }
 `
 
+export const GET_REGISTRATIONS_WITH_LABEL = gql`
+  query getRegistrationsWithLabel($expiryDateGt: Int!, $expiryDateLt: Int!, $labels: [String] ){
+    registrations(first:1000, where:{expiryDate_gt:$expiryDateGt, expiryDate_lt:$expiryDateLt, labelName_in:$labels}){
+      id
+      expiryDate
+      labelName
+      registrationDate
+      domain{
+        name
+      }
+    }
+  }
+`
+
 export const GET_BLOCK = gql`
   query getBlock($timestamp: Int!){
     blocks(first: 1, orderBy: timestamp, orderDirection: asc, where: {timestamp_gt: $timestamp}) {
