@@ -9,7 +9,7 @@
     "deploy": "yarn build && gcloud app deploy app.yaml --quiet",
     "deploy:cron": "gcloud app deploy cron.yaml --quiet",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --config jestconfig.json"
   },
   "author": "makoto",
   "license": "ISC",
@@ -24,5 +24,10 @@
     "moment": "^2.29.1",
     "twitter": "^1.7.1",
     "twitter-d": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.19",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.4.4"
   }
 }

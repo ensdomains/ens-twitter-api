@@ -16,3 +16,14 @@ export const pluralize = (num) => {
 export function generateSummary(verb, length) {
   return `${length} .eth name${ pluralize(length) } ${ length === 1 ? 'has' : 'have' } been ${verb} in the last hour #ens${verb}`
 }
+
+export function parser(input){
+  let matched = input.match(/(.*\.eth)/)
+  if(matched){
+    // console.log({matched})
+    const split = matched[0].toLowerCase().split(/ |\(/)
+    return split[split.length - 1]
+  }else{
+    return null
+  }
+}
