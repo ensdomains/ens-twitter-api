@@ -3,11 +3,12 @@ import {
   GET_REGISTRATIONS,
   GET_BLOCK,
   GET_RENEWED,
-  GET_REGISTERED
+  GET_REGISTERED,
+  GET_REVERSE
 } from './subgraph'
 
 import {
-  GRACE_PERIOD, DECAY_PERIOD,
+  GRACE_PERIOD, DECAY_PERIOD
 } from './util'
 
 const moment = require('moment')
@@ -20,30 +21,33 @@ export const daily = async () => {
   const endDate = moment().subtract(1, 'day').endOf('day')
   const releasedDateGt = startDate.clone().subtract(90, 'day')
   const releasedDateLt = endDate.clone().subtract(90, 'day')
-  const { blocks:startBlock } = await request(BLOCKSURL, GET_BLOCK, { timestamp:startDate.unix() })
-  const { blocks:endBlock } = await request(BLOCKSURL, GET_BLOCK, { timestamp:endDate.unix() })
+  const { blocks:startBlocks } = await request(BLOCKSURL, GET_BLOCK, { timestamp:startDate.unix() })
+  const { blocks:endBlocks } = await request(BLOCKSURL, GET_BLOCK, { timestamp:endDate.unix() })
   console.log({
     startDate,
     endDate,
-    startBlock,
-    endBlock
+    startBlocks,
+    endBlocks
   })
+  const startBlockNumber = parseInt(startBlocks[0].number)
+  const endBlockNumber = parseInt(endBlocks[0].number)
   const { nameReneweds } = await request(ENSURL, GET_RENEWED, {
-    blockNumberGt:parseInt(startBlock[0].number),
-    blockNumberLt:parseInt(endBlock[0].number)
+    blockNumberGt:startBlockNumber,
+    blockNumberLt:endBlockNumber
   })
   const { registrations:nameRegistered } = await request(ENSURL, GET_REGISTERED, { registrationDateGt:startDate.unix(), registrationDateLt:endDate.unix() })
   const { registrations: releasedRegistrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:releasedDateGt.unix(), expiryDateLt:releasedDateLt.unix() })
+  const { nameChangeds } = await request(ENSURL, GET_REVERSE, { blockNumberGt:startBlockNumber, blockNumberLt:endBlockNumber })
+
   const endTime = moment().unix()
   return({
     runningTime: (endTime - startTime),
     startDate,
     endDate,
-    startBlock,
-    endBlock,
     totalEthRenewed: nameReneweds.length,
     totalEthRegistered:nameRegistered.length,
-    totalEthReleased: releasedRegistrations.length
+    totalEthReleased: releasedRegistrations.length,
+    totalReverseSet:nameChangeds.length
   })
 }
 

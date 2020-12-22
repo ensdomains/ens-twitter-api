@@ -100,46 +100,72 @@ async function threadTweet(summary, messages, textHandler) {
       tweet = await promisifyTweet('post', 'statuses/update', {status: text, in_reply_to_status_id: tweet.id_str })
       console.log(`APP_LOG:COMMENT (${i}/ ${messages.length}): ${text}`)
     }
+  }else{
+    console.log(`APP_LOG:NOTWEET: ${summary}`)
   }
   return tweets
 }
 
 app.get('/tweet/registered', async function (_, res) {
-  const messages = await registered(HOUR)
-  const summary = generateSummary('registered', messages.length)
-  const tweets = await threadTweet(summary, messages, (m) => {
-    const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(moment())).as('year'))
-    const name = m.domain.name
-    return `${name} was just registered for ${duration} year${ pluralize(duration) } https://app.ens.domains/name/${name}`
+  registered(HOUR).then(messages => {
+    const summary = generateSummary('registered', messages.length)
+    threadTweet(summary, messages, (m) => {
+      const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(m.registrationDate * 1000)).as('year'))
+      const name = m.domain.name
+      return `${name} was just registered for ${duration} year${ pluralize(duration) } https://app.ens.domains/name/${name}`
+    }).then(tweets => {
+      res.send(tweets.join('\n'));
+    }).catch(e => {
+      res.json(`APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e))
+    })
+  }).catch(e => {
+    res.json(`APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e))
   })
-  res.send(tweets.join('\n'));
 });
 
 app.get('/tweet/expired', async function (_, res) {
-  const messages = await expired(HOUR)
-  const summary = generateSummary('expired', messages.length)
-  const tweets = await threadTweet(summary, messages, (m) => {
-    return `${m.domain.name} was just expired and will be relased in 90 days`
+  expired(HOUR).then(messages => {
+    const summary = generateSummary('expired', messages.length)
+    threadTweet(summary, messages, (m) => {
+      return `${m.domain.name} was just expired and will be relased in 90 days`
+    }).then(tweets => {
+      res.send(tweets.join('\n'));
+    }).catch(e => {
+      res.json(`APP_LOG:EXPIRED:ERROR:` + JSON.stringify(e))
+    })
+  }).catch(e => {
+    res.json(`APP_LOG:EXPIRED:ERROR:` + JSON.stringify(e))
   })
-  res.send(tweets.join('\n'));
 });
 
 app.get('/tweet/released', async function (_, res) {
-  const messages = await released(HOUR)
-  const summary = generateSummary('released', messages.length)
-  const tweets = await threadTweet(summary, messages, (m) => {
-    return `${m.domain.name} was just released and available for registration with premium at https://app.ens.domains/name/${m.domain.name}`
+  released(HOUR).then(messages => {
+    const summary = generateSummary('released', messages.length)
+    threadTweet(summary, messages, (m) => {
+      return `${m.domain.name} was just released and available for registration with premium at https://app.ens.domains/name/${m.domain.name}`
+    }).then(tweets => {
+      res.send(tweets.join('\n'));
+    }).catch(e => {
+      res.json(`APP_LOG:RELEASED:ERROR:` + JSON.stringify(e))
+    })
+  }).catch(e => {
+    res.json(`APP_LOG:RELEASED:ERROR:` + JSON.stringify(e))
   })
-  res.send(tweets.join('\n'));
 });
 
 app.get('/tweet/nopremium', async function (_, res) {
-  const messages = await nopremium(HOUR)
-  const summary = `${messages.length} .eth name${ pluralize(messages.length) } became available for registration with no premium in the last hour #ensnopremium`
-  const tweets = await threadTweet(summary, messages, (m) => {
-    return `${m.domain.name} is now available for registration with no premium at https://app.ens.domains/name/${m.domain.name}`
+  nopremium().then(messages => {
+    const summary = `${messages.length} .eth name${ pluralize(messages.length) } became available for registration with no premium in the last hour #ensnopremium`
+    threadTweet(summary, messages, (m) => {
+      return `${m.domain.name} is now available for registration with no premium at https://app.ens.domains/name/${m.domain.name}`
+    }).then(tweets => {
+      res.send(tweets.join('\n'));
+    }).catch(e => {
+      res.json(`APP_LOG:NOPREMIUM:ERROR:` + JSON.stringify(e))
+    })
+  }).catch(e => {
+    res.json(`APP_LOG:NOPREMIUM:ERROR:` + JSON.stringify(e))
   })
-  res.send(tweets.join('\n'));
 });
 
 app.get('/user/:page', async function (req, res) {
@@ -151,7 +177,7 @@ app.get('/user/:page', async function (req, res) {
     })  
   }catch(e){
     console.log({e})
-  res.json([])
+    res.json([])
   }
 });
 
@@ -159,7 +185,7 @@ app.get('/tweet/daily', function (req, res) {
   daily().then(m =>{
     const total = m.totalEthRegistered - m.totalEthReleased
     const search = `from:@${SCREEN_NAME} #ensdaily`
-    const text = `#ensdaily (${ formatShortDate(m.startDate) }) ${total} @ensdomains .eth names were created (${ m.totalEthRegistered} registered - ${m.totalEthReleased} released ) and ${ m.totalEthRenewed} domains were  renewed.`
+    const text = `#ensdaily (${ formatShortDate(m.startDate) }) ${total} @ensdomains .eth names were created (${ m.totalEthRegistered} registered - ${m.totalEthReleased} released ) and ${ m.totalEthRenewed} domains were renewed. ${m.totalReverseSet} reverse records set.`
     TWITTER_CLIENT.get('search/tweets', {q:search}, function(error, tweets, response){
       if(error) (res.json([]))
       let option, action
@@ -171,11 +197,13 @@ app.get('/tweet/daily', function (req, res) {
         option = {status: text}
         action = 'Tweet'
       }
-      console.log({action, option})
+      console.log(`APP_LOG:DAILY (${action}) ${text}`)
       TWITTER_CLIENT.post('statuses/update', option,  function(error, tweet, response) {
         res.json(`${action} ${text}` + JSON.stringify(error || response))
       })
     })
+  }).catch(e => {
+    res.json(`APP_LOG:DAILY:ERROR:` + JSON.stringify(e))
   })
 });
 

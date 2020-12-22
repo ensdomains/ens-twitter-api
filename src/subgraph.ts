@@ -23,6 +23,15 @@ export const GET_BLOCK = gql`
   }   
 `
 
+export const GET_REVERSE = gql`
+query getReverse($blockNumberGt: Int!, $blockNumberLt: Int!){
+  nameChangeds(first:1000, where: {blockNumber_gt: $blockNumberGt, blockNumber_lt: $blockNumberLt } ){
+    id
+    name
+  }
+}
+`
+
 export const GET_REGISTERED = gql`
   query getRegistered($registrationDateGt: Int!, $registrationDateLt: Int! ){
     registrations(first:1000, where:{registrationDate_gt:$registrationDateGt, registrationDate_lt:$registrationDateLt}){
