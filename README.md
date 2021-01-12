@@ -38,6 +38,16 @@ Example message
 - #ensrexpirations 1 .eth name has been expired in the last hour
 - vitalik.eth was just expired and will be relased in 90 days
 
+### /tweet/tobereleased/:duration-:unit/:interval?
+
+Tweets when a domain is to released AND it can find its twitter profile (summary + individual name in the thread)
+
+Example message
+
+- /tweet/tobereleased/13-hours
+- 18 .eth names will be released in the next 14 hours. Going to remind 1 tweep who sets .eth name as twitter handle #ens14hourstobereleased
+- Hi @vitalik vitalik.eth will be released in the next 13 hours. Make sure to renew at https://app.ens.domains/name/vitalik.eth if you still wish to keep the name.
+
 ### /tweet/released
 
 Tweets when a domain is released (summary + individual name in the thread)
