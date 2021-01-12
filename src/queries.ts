@@ -91,6 +91,19 @@ export const released = async (hour = 1) => {
   return releasedRegistrations
 }
 
+export const tobereleased = async (duratioin = 7, unit = 'day', interval = 1) => {
+  const releaseDate = moment().subtract(GRACE_PERIOD, 'days')
+  const oneweekDateLt = releaseDate.clone().add(duratioin, unit)
+  const oneweekDateGt = oneweekDateLt.clone().subtract(interval, 'hour')
+  let { registrations } = await request(ENSURL, GET_REGISTRATIONS, { expiryDateGt:oneweekDateGt.unix(), expiryDateLt:oneweekDateLt.unix() })
+  let filtered = registrations.filter((r) =>{
+    const name = r.domain.name
+    // Ignore names with no decoded labels
+    return !(name.match(/\[.*\]\.eth/) && name.length === 70)
+  })
+  return filtered
+}
+
 export const nopremium = async (hour = 1) => {
   const expiryDateGt = moment().subtract(hour, 'hour')
   const expiryDateLt = moment()

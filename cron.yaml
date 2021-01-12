@@ -7,10 +7,16 @@ cron:
   schedule: every 1 hours from 00:10 to 23:10
 - description: "expired"
   url: /tweet/expired
-  schedule: every 1 hours from 00:25 to 23:25
+  schedule: every 1 hours from 00:20 to 23:20
+- description: "oneweektobereleased"
+  url: /tweet/tobereleased/1-week
+  schedule: every 1 hours from 00:30 to 23:30
+- description: "onedaytobereleased"
+  url: /tweet/tobereleased/1-day
+  schedule: every 1 hours from 00:40 to 23:40
 - description: "released"
   url: /tweet/released
-  schedule: every 1 hours from 00:40 to 23:40
+  schedule: every 1 hours from 00:50 to 23:50
 - description: "nopremium"
   url: /tweet/nopremium
   schedule: every 1 hours from 00:55 to 23:55

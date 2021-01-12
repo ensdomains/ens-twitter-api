@@ -1,12 +1,14 @@
 const express = require('express')
 const moment = require('moment')
 const twitter = require('twitter');
+const _ = require('lodash');
 
 import { Status as Tweet } from 'twitter-d';
 import {
   daily,
   registered,
   expired,
+  tobereleased,
   released,
   nopremium,
   expiredWithLabel
@@ -139,6 +141,44 @@ app.get('/tweet/expired', async function (_, res) {
   })
 });
 
+app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
+  const {duration, unit, interval} = req.params
+  tobereleased(duration, unit, (interval || 1)).then(messages => {
+    const length = messages.length
+    searchByNames(messages.slice(0,100)).then((r) => {
+      const summary = `${length} .eth name${ pluralize(length) } will be released in the next ${duration} ${unit}. Going to remind ${r.length} tweep${ pluralize(r.length) } who set${(r.length === 1 ? 's' : '')} .eth name as twitter handle #ens${duration}${unit}tobereleased`
+      const threads = r.map(e => {
+        let domain = e.domain
+        let name = e.name
+        let screen_name = e.screen_name
+        let expiryDate = moment(e.expiryDate * 1000)
+        let releaseDate = moment(e.expiryDate * 1000).add(GRACE_PERIOD, 'days')
+        let eachDuration = parseInt(moment.duration(releaseDate.diff(moment())).as(unit))
+        return({
+          domain,
+          name,
+          screen_name,
+          expiryDate,
+          releaseDate,
+          eachDuration,
+          text:`Hi @${e.screen_name} ${e.domain} will be released in the next ${eachDuration} ${unit}. Make sure to renew at https://app.ens.domains/name/${domain} if you still wish to keep the name.`
+        })
+      })
+      if(r.length > 0){
+        threadTweet(summary, threads, (t) => {
+          return t.text
+        }).then(tweets => {
+          res.send(tweets.join('\n'));
+        }).catch(e => {
+          res.json(`APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e))
+        })
+      }else{
+        res.json({summary, threads})
+      }
+    })
+  })
+});
+
 app.get('/tweet/released', async function (_, res) {
   released(HOUR).then(messages => {
     const summary = generateSummary('released', messages.length)
@@ -169,7 +209,7 @@ app.get('/tweet/nopremium', async function (_, res) {
   })
 });
 
-async function search(){
+async function search(q = '\.eth'){
   let perpage = 20
   let page = 1
   let maxpage = 50
@@ -178,7 +218,7 @@ async function search(){
   let tweets
   while (tweetcount === perpage && page < maxpage) {
     try{
-      tweets = await TWITTER_CLIENT.get('/users/search', {q:'\.eth', count:perpage, page})
+      tweets = await TWITTER_CLIENT.get('/users/search', {q, count:perpage, page})
       tweetcount = tweets.length
       let filtered = tweets.map(t => {
         let a = {domain:parser(t.name)}
@@ -187,6 +227,35 @@ async function search(){
       parsed = [...parsed, ...filtered]
       console.log({page, tweetcount, perpage, continue:(page < maxpage), filtered:filtered.length, parsed:parsed.length})
       page+=1
+    }catch(e){
+      console.log({e})
+    }
+  }
+  return parsed
+}
+
+async function searchByNames(messages){
+  let tweetcount = 20
+  let parsed = []
+  let tweets
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    const q = message.domain.name
+    try{
+      tweets = (await TWITTER_CLIENT.get('/users/search', {q})).map(t => {
+        return {name:t.name, screen_name:t.screen_name}
+      })
+      tweetcount = tweets.length
+      let filtered = tweets.map(t => {
+        let parsed = parser(t.name)
+        return {
+          ...message,
+          name:t.name, screen_name:t.screen_name, domain:(parsed === q ? q : null)
+        }
+      }).filter(f => !!f.domain)[0]
+      if(filtered){
+        parsed = [...parsed, ...filtered]
+      }
     }catch(e){
       console.log({e})
     }

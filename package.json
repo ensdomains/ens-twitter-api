@@ -20,6 +20,7 @@
     "express": "^4.17.1",
     "graphql": "^15.4.0",
     "graphql-request": "^3.3.0",
+    "lodash": "^4.17.20",
     "microbundle": "^0.12.4",
     "moment": "^2.29.1",
     "twitter": "^1.7.1",
