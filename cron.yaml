@@ -9,10 +9,10 @@ cron:
   url: /tweet/expired
   schedule: every 1 hours from 00:20 to 23:20
 - description: "oneweektobereleased"
-  url: /tweet/tobereleased/1-week
+  url: /tweet/tobereleased/7-days
   schedule: every 1 hours from 00:30 to 23:30
 - description: "onedaytobereleased"
-  url: /tweet/tobereleased/1-day
+  url: /tweet/tobereleased/24-hours
   schedule: every 1 hours from 00:40 to 23:40
 - description: "released"
   url: /tweet/released

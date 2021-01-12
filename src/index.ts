@@ -225,7 +225,7 @@ async function search(q = '\.eth'){
         return {...t, ...a}
       }).filter(f => !!f.domain)
       parsed = [...parsed, ...filtered]
-      console.log({page, tweetcount, perpage, continue:(page < maxpage), filtered:filtered.length, parsed:parsed.length})
+      // console.log({page, tweetcount, perpage, continue:(page < maxpage), filtered:filtered.length, parsed:parsed.length})
       page+=1
     }catch(e){
       console.log({e})
@@ -266,7 +266,7 @@ async function searchByNames(messages){
 app.get('/search', async function (req, res) {
   let tweets = await search()
   let labels = tweets.filter(t => t.domain.split('.').length === 2).map(t => t.domain.split('.')[0])
-  
+
   let expired = await expiredWithLabel(7, labels)
   console.log(`Checking expiratin for ${labels.length} names, found ${expired.length} names to be released soon`)
   expired = expired.map(e => {
@@ -284,7 +284,8 @@ app.get('/search', async function (req, res) {
       text:`Hi @${twitter.screen_name} . ${domain} will be released in ${duration} days. Make sure to renew at https://app.ens.domains/name/${domain} if you still wish to keep the name.`
     })
   })
-  res.json(expired.map(e => e.text))
+  const arry = expired.map(e => [e.duration, twitter.screen_name, e.domain])
+  res.json(arry)
 });
 
 app.get('/tweet/daily', function (req, res) {
