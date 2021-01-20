@@ -36,7 +36,7 @@ Tweets when a domain is expired (summary + individual name in the thread)
 Example message
 
 - #ensrexpirations 1 .eth name has been expired in the last hour
-- vitalik.eth was just expired and will be relased in 90 days
+- vitalik.eth was just expired and will be released in 90 days
 
 ### /tweet/tobereleased/:duration-:unit/:interval?
 
