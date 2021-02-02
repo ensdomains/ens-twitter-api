@@ -152,11 +152,12 @@ app.get('/tweet/expired', async function (_, res) {
   })
 });
 
-app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
+app.get('/tobereleased/:duration-:unit/:interval?', function (req, res) {
   const {duration, unit, interval} = req.params
   tobereleased(duration, unit, (interval || 1)).then(messages => {
     const length = messages.length
-    searchByNames(messages.slice(0,100)).then((r) => {
+    console.log('*** messages', messages.length)
+    searchByNames(messages.slice(0,1000)).then((r) => {
       const campaign = `${duration}${unit}tobereleased`
       const summary = `${length} .eth name${ pluralize(length) } will be released in the next ${duration} ${unit}. Going to remind ${r.length} tweep${ pluralize(r.length) } who set${(r.length === 1 ? 's' : '')} .eth name as twitter handle #ens${campaign}`
       const threads = r.map(e => {
@@ -177,19 +178,20 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
           text:`Hi @${e.screen_name} ${e.domain} will be released in the next ${eachDuration} ${unit}. Make sure to renew at ${url} if you still wish to keep the name.`
         })
       })
-      if(r.length > 0){
-        threadTweet(summary, threads, (t) => {
-          return t.text
-        }).then(tweets => {
-          res.send(tweets.join('\n'));
-        }).catch(e => {
-          let message = `APP_LOG:TOBERELEASED:ERROR:` + JSON.stringify(e)
-          console.log(message)
-          res.json(message)
-        })
-      }else{
-        res.json({summary, threads})
-      }
+      res.json({summary, threads})
+      // if(r.length > 0){
+      //   threadTweet(summary, threads, (t) => {
+      //     return t.text
+      //   }).then(tweets => {
+      //     res.send(tweets.join('\n'));
+      //   }).catch(e => {
+      //     let message = `APP_LOG:TOBERELEASED:ERROR:` + JSON.stringify(e)
+      //     console.log(message)
+      //     res.json(message)
+      //   })
+      // }else{
+      //   res.json({summary, threads})
+      // }
     })
   })
 });
