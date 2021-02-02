@@ -190,6 +190,7 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
           res.json(message)
         })
       }else{
+        console.log(`APP_LOG:TOBERELEASED:NONE:` + summary)
         res.json({summary, threads})
       }
     })
