@@ -132,7 +132,8 @@ app.get('/tweet/expired', async function (_, res) {
   expired(HOUR).then(messages => {
     const summary = generateSummary('expired', messages.length)
     threadTweet(summary, messages, (m) => {
-      return `${m.domain.name} was just expired and will be released in 90 days`
+      const url = buildUrl(m.domain.name, 'expired')
+      return `${m.domain.name} was just expired and will be released in 90 days. ${url}`
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
