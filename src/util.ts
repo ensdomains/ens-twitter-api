@@ -27,3 +27,7 @@ export function parser(input){
     return null
   }
 }
+
+export function buildUrl(name, campaign){
+  return `https://app.ens.domains/name/${name}?utm_source=twitter&utm_campaign=${campaign}`
+}

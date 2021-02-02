@@ -2,6 +2,7 @@ const express = require('express')
 const moment = require('moment')
 const twitter = require('twitter');
 const _ = require('lodash');
+import { buildUrl } from './util'
 
 import { Status as Tweet } from 'twitter-d';
 import {
@@ -115,7 +116,8 @@ app.get('/tweet/registered', async function (_, res) {
     threadTweet(summary, messages, (m) => {
       const duration = Math.round(moment.duration(moment(m.expiryDate * 1000).diff(m.registrationDate * 1000)).as('year'))
       const name = m.domain.name
-      return `${name} was just registered for ${duration} year${ pluralize(duration) } https://app.ens.domains/name/${name}`
+      const url = buildUrl(name, 'registered')
+      return `${name} was just registered for ${duration} year${ pluralize(duration) } ${url}`
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
@@ -146,7 +148,8 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
   tobereleased(duration, unit, (interval || 1)).then(messages => {
     const length = messages.length
     searchByNames(messages.slice(0,100)).then((r) => {
-      const summary = `${length} .eth name${ pluralize(length) } will be released in the next ${duration} ${unit}. Going to remind ${r.length} tweep${ pluralize(r.length) } who set${(r.length === 1 ? 's' : '')} .eth name as twitter handle #ens${duration}${unit}tobereleased`
+      const campaign = `${duration}${unit}tobereleased`
+      const summary = `${length} .eth name${ pluralize(length) } will be released in the next ${duration} ${unit}. Going to remind ${r.length} tweep${ pluralize(r.length) } who set${(r.length === 1 ? 's' : '')} .eth name as twitter handle #ens${campaign}`
       const threads = r.map(e => {
         let domain = e.domain
         let name = e.name
@@ -154,6 +157,7 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
         let expiryDate = moment(e.expiryDate * 1000)
         let releaseDate = moment(e.expiryDate * 1000).add(GRACE_PERIOD, 'days')
         let eachDuration = parseInt(moment.duration(releaseDate.diff(moment())).as(unit))
+        const url = buildUrl(name, campaign)
         return({
           domain,
           name,
@@ -161,7 +165,7 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
           expiryDate,
           releaseDate,
           eachDuration,
-          text:`Hi @${e.screen_name} ${e.domain} will be released in the next ${eachDuration} ${unit}. Make sure to renew at https://app.ens.domains/name/${domain} if you still wish to keep the name.`
+          text:`Hi @${e.screen_name} ${e.domain} will be released in the next ${eachDuration} ${unit}. Make sure to renew at ${url} if you still wish to keep the name.`
         })
       })
       if(r.length > 0){
@@ -183,7 +187,8 @@ app.get('/tweet/released', async function (_, res) {
   released(HOUR).then(messages => {
     const summary = generateSummary('released', messages.length)
     threadTweet(summary, messages, (m) => {
-      return `${m.domain.name} was just released and available for registration with premium at https://app.ens.domains/name/${m.domain.name}`
+      const url = buildUrl(m.domain.name, 'released')
+      return `${m.domain.name} was just released and available for registration with premium at ${url}`
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
@@ -198,7 +203,8 @@ app.get('/tweet/nopremium', async function (_, res) {
   nopremium().then(messages => {
     const summary = `${messages.length} .eth name${ pluralize(messages.length) } became available for registration with no premium in the last hour #ensnopremium`
     threadTweet(summary, messages, (m) => {
-      return `${m.domain.name} is now available for registration with no premium at https://app.ens.domains/name/${m.domain.name}`
+      const url = buildUrl(m.domain.name, 'nopremium')
+      return `${m.domain.name} is now available for registration with no premium at ${url}`
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
