@@ -121,10 +121,14 @@ app.get('/tweet/registered', async function (_, res) {
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
-      res.json(`APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e))
+      let message = `APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e)
+      console.log(message)
+      res.json(message)
     })
   }).catch(e => {
-    res.json(`APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e))
+    let message = `APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e)
+    console.log(message)
+    res.json(message)
   })
 });
 
@@ -137,10 +141,14 @@ app.get('/tweet/expired', async function (_, res) {
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
-      res.json(`APP_LOG:EXPIRED:ERROR:` + JSON.stringify(e))
+      let message = `APP_LOG:EXPIRED:ERROR:` + JSON.stringify(e)
+      console.log(message)
+      res.json(message)
     })
   }).catch(e => {
-    res.json(`APP_LOG:EXPIRED:ERROR:` + JSON.stringify(e))
+    let message = `APP_LOG:EXPIRED:ERROR:` + JSON.stringify(e)
+    console.log(message)
+    res.json(message)
   })
 });
 
@@ -175,7 +183,9 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
         }).then(tweets => {
           res.send(tweets.join('\n'));
         }).catch(e => {
-          res.json(`APP_LOG:REGISTERED:ERROR:` + JSON.stringify(e))
+          let message = `APP_LOG:TOBERELEASED:ERROR:` + JSON.stringify(e)
+          console.log(message)
+          res.json(message)
         })
       }else{
         res.json({summary, threads})
@@ -184,7 +194,7 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
   })
 });
 
-app.get('/tweet/released', async function (_, res) {
+app.get('/tweet1/released', async function (_, res) {
   released(HOUR).then(messages => {
     const summary = generateSummary('released', messages.length)
     threadTweet(summary, messages, (m) => {
@@ -193,10 +203,14 @@ app.get('/tweet/released', async function (_, res) {
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
-      res.json(`APP_LOG:RELEASED:ERROR:` + JSON.stringify(e))
+      let message = `APP_LOG:RELEASED:ERROR:` + JSON.stringify(e)
+      console.log(message)
+      res.json(message)
     })
   }).catch(e => {
-    res.json(`APP_LOG:RELEASED:ERROR:` + JSON.stringify(e))
+    let message = `APP_LOG:RELEASED:ERROR:` + JSON.stringify(e)
+    console.log(message)
+    res.json(message)
   })
 });
 
@@ -209,10 +223,14 @@ app.get('/tweet/nopremium', async function (_, res) {
     }).then(tweets => {
       res.send(tweets.join('\n'));
     }).catch(e => {
-      res.json(`APP_LOG:NOPREMIUM:ERROR:` + JSON.stringify(e))
+      let message = `APP_LOG:NOPREMIUM:ERROR:` + JSON.stringify(e)
+      console.log(message)
+      res.json(message)
     })
   }).catch(e => {
-    res.json(`APP_LOG:NOPREMIUM:ERROR:` + JSON.stringify(e))
+    let message = `APP_LOG:NOPREMIUM:ERROR:` + JSON.stringify(e)
+    console.log(message)
+    res.json(message)
   })
 });
 
