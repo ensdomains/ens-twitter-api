@@ -194,7 +194,7 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
   })
 });
 
-app.get('/tweet1/released', async function (_, res) {
+app.get('/tweet/released', async function (_, res) {
   released(HOUR).then(messages => {
     const summary = generateSummary('released', messages.length)
     threadTweet(summary, messages, (m) => {
