@@ -167,7 +167,7 @@ app.get('/tweet/tobereleased/:duration-:unit/:interval?', function (req, res) {
         let expiryDate = moment(e.expiryDate * 1000)
         let releaseDate = moment(e.expiryDate * 1000).add(GRACE_PERIOD, 'days')
         let eachDuration = parseInt(moment.duration(releaseDate.diff(moment())).as(unit))
-        const url = buildUrl(name, campaign)
+        const url = buildUrl(domain, campaign)
         return({
           domain,
           name,
